@@ -12,7 +12,7 @@ const cors = require("cors");
 const app = express();
 
 const corsOptions = {
-  origin: "*", // غير آمن في الإنتاج!
+  origin: "*",
   credentials: true,
 };
 
