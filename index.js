@@ -12,10 +12,7 @@ const cors = require("cors");
 const app = express();
 
 const corsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "https://syria-store-git-main-ali-hasan-sss-projects.vercel.app",
-  ],
+  origin: "*", // غير آمن في الإنتاج!
   credentials: true,
 };
 
