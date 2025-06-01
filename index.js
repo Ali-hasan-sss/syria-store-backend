@@ -12,7 +12,7 @@ const cors = require("cors");
 const app = express();
 
 const corsOptions = {
-  origin: "*",
+  origin: "https://syria-store-git-main-ali-hasan-sss-projects.vercel.app",
   credentials: true,
 };
 
