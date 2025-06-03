@@ -3,11 +3,16 @@ const mongoose = require("mongoose");
 const blogsRoute = require("./routes/blogs");
 const servicesRoute = require("./routes/services");
 const authRoute = require("./routes/auth");
+const productsRoute = require("./routes/products");
+const categoriessRoute = require("./routes/categories");
+const usersRoute = require("./routes/users");
 // const mongoSanitize = require("express-mongo-sanitize");   *******problem******
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const port = process.env.PORT;
 const cors = require("cors");
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
 
 const app = express();
 
@@ -35,6 +40,34 @@ app.use(globalLimiter); // ✅ تطبيق الحد على كل المسارات
 app.use("/api", blogsRoute);
 app.use("/api", servicesRoute);
 app.use("/api", authRoute);
+app.use("/api", productsRoute);
+app.use("/api", categoriessRoute);
+app.use("/api", usersRoute);
+
+const options = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "My Express API",
+      version: "1.0.0",
+      description: "توثيق API باستخدام Swagger",
+    },
+    servers: [
+      {
+        url: "http://localhost:3001",
+      },
+    ],
+  },
+  apis: ["./routes/*.js"],
+};
+
+const specs = swaggerJsdoc(options);
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+app.get("/api-docs.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(specs);
+});
 
 // اتصال بقاعدة البيانات
 mongoose

@@ -6,9 +6,48 @@ const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
 require("dotenv").config();
 
-// -------------------
-// Register New User
-// -------------------
+// ==============================
+// 📌 Register New User
+// ==============================
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - phone_num
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: محمد أحمد
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               phone_num:
+ *                 type: string
+ *                 example: 0999999999
+ *               password:
+ *                 type: string
+ *                 example: mypassword123
+ *     responses:
+ *       201:
+ *         description: User registered and logged in successfully
+ *       400:
+ *         description: Validation error or user already exists
+ *       500:
+ *         description: Server error
+ */
 router.post(
   "/register",
   [
@@ -28,7 +67,6 @@ router.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      // نرجع أول خطأ للمستخدم
       return res.status(400).json({
         success: false,
         message: errors.array()[0].msg,
@@ -99,9 +137,42 @@ router.post(
   }
 );
 
-// -------------------
-// User Login
-// -------------------
+// ==============================
+// 🔐 Login User
+// ==============================
+
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Log in with email or phone number
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - identifier
+ *               - password
+ *             properties:
+ *               identifier:
+ *                 type: string
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 example: mypassword123
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       400:
+ *         description: Invalid credentials
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 router.post(
   "/login",
   [

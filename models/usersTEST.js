@@ -49,3 +49,6 @@ router.put("/products/:id", verifyToken, async (req, res) => {
 
   // أكمل التعديل...
 });
+//جلب المنتجات حسب الفئة
+const products = await Product.find().populate("category");
+console.log(products);
