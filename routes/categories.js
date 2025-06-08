@@ -54,7 +54,7 @@ router.post("/categories", verifyToken, isAdmin, async (req, res) => {
 
     const category = new Category({ name });
     await category.save();
-    res.status(201).json(category);
+    res.status(201).json({ success: true, data: category });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -98,7 +98,7 @@ router.put("/categories/:id", verifyToken, isAdmin, async (req, res) => {
       { name: req.body.name },
       { new: true }
     );
-    res.json(category);
+    res.json({ success: true, data: category });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -13,11 +13,12 @@ const port = process.env.PORT;
 const cors = require("cors");
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
+const uploadRoute = require("./routes/uploads");
 
 const app = express();
 
 const corsOptions = {
-  origin: "https://syria-store-git-main-ali-hasan-sss-projects.vercel.app",
+  origin: "https://syria-store-indol.vercel.app",
   credentials: true,
 };
 
@@ -38,6 +39,7 @@ app.use(globalLimiter); // ✅ تطبيق الحد على كل المسارات
 
 // توجيه كل الروتات تحت مسار /api
 app.use("/api", blogsRoute);
+app.use("/api", uploadRoute);
 app.use("/api", servicesRoute);
 app.use("/api", authRoute);
 app.use("/api", productsRoute);
