@@ -70,6 +70,74 @@ router.get("/products", verifyToken, async (req, res) => {
 
 /**
  * @swagger
+ * /products/latest:
+ *   get:
+ *     summary: Get latest 10 added products
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: List of latest 10 products
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Product'
+ */
+router.get("/products/latest", async (req, res) => {
+  try {
+    const filter = {};
+    if (!req.user || req.user.role !== "ADMIN") {
+      filter.status = 1;
+    }
+
+    const latestProducts = await product
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    res.json({ success: true, data: latestProducts });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * @swagger
+ * /products/top-rated:
+ *   get:
+ *     summary: Get top rated products
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: List of top rated products
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Product'
+ */
+router.get("/products/top-rated", async (req, res) => {
+  try {
+    const filter = { rate: { $gt: 0 } };
+    if (!req.user || req.user.role !== "ADMIN") {
+      filter.status = 1;
+    }
+
+    const topRatedProducts = await product
+      .find(filter)
+      .sort({ rate: -1 })
+      .limit(10);
+
+    res.json({ success: true, data: topRatedProducts });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * @swagger
  * /products/{id}:
  *   get:
  *     summary: Get a product by ID
@@ -184,74 +252,6 @@ router.get("/products/category/:categoryId", verifyToken, async (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /products/latest:
- *   get:
- *     summary: Get latest 10 added products
- *     tags: [Products]
- *     responses:
- *       200:
- *         description: List of latest 10 products
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Product'
- */
-router.get("/products/latest", async (req, res) => {
-  try {
-    const filter = {};
-    if (!req.user || req.user.role !== "ADMIN") {
-      filter.status = 1;
-    }
-
-    const latestProducts = await product
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .limit(10);
-
-    res.json({ success: true, data: latestProducts });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * @swagger
- * /products/top-rated:
- *   get:
- *     summary: Get top rated products
- *     tags: [Products]
- *     responses:
- *       200:
- *         description: List of top rated products
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Product'
- */
-router.get("/products/top-rated", async (req, res) => {
-  try {
-    const filter = { rate: { $gt: 0 } };
-    if (!req.user || req.user.role !== "ADMIN") {
-      filter.status = 1;
-    }
-
-    const topRatedProducts = await product
-      .find(filter)
-      .sort({ rate: -1 })
-      .limit(10);
-
-    res.json({ success: true, data: topRatedProducts });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 //add product from admin
 router.post("/products", verifyToken, isAdmin, async (req, res) => {
   const { name, price, description, category_id, images, rate, phone } =
@@ -359,17 +359,36 @@ router.patch("/products/:id/status", verifyToken, isAdmin, async (req, res) => {
 router.patch("/products/:id/rate", verifyToken, async (req, res) => {
   const { id } = req.params;
   const { rate } = req.body;
+  const userId = req.user.id;
 
   try {
-    const updatedProduct = await product.findByIdAndUpdate(
-      id,
-      { rate },
-      { new: true }
-    );
-    if (!updatedProduct) {
+    const productDoc = await product.findById(id);
+    if (!productDoc) {
       return res.status(404).json({ error: "المنتج غير موجود" });
     }
-    res.json({ success: true, data: updatedProduct });
+
+    // هل المستخدم قيّم سابقاً؟
+    const existingRating = productDoc.ratings.find(
+      (r) => r.userId.toString() === userId
+    );
+
+    if (existingRating) {
+      // تحديث تقييمه السابق
+      existingRating.rate = rate;
+    } else {
+      // إضافة تقييم جديد
+      productDoc.ratings.push({ userId, rate });
+    }
+
+    // حساب المتوسط
+    const total = productDoc.ratings.reduce((sum, r) => sum + r.rate, 0);
+    const avg = total / productDoc.ratings.length;
+    productDoc.averageRating = avg;
+
+    // حفظ المنتج
+    await productDoc.save();
+
+    res.json({ success: true, data: productDoc });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

@@ -7,7 +7,19 @@ const productSchema = new Schema(
     name: { type: String, required: [true, "The product name is required"] },
     price: { type: Number, required: [true, "Price is required"] },
     images: [String],
-    rate: Number,
+    ratings: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        rate: Number,
+      },
+    ],
+    averageRating: {
+      type: Number,
+      default: 0,
+    },
     status: { type: Number, default: 0 },
     description: String,
     phone: { type: String, required: [true, "phone number is required"] },
