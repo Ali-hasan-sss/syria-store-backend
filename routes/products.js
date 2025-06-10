@@ -1,15 +1,9 @@
 const express = require("express");
 const product = require("../models/products");
+const Category = require("../models/categories");
 const { isAdmin, verifyToken } = require("../middleware/auth");
 
 const router = express.Router();
-
-/**
- * @swagger
- * tags:
- *   name: Products
- *   description: API endpoints for managing products
- */
 
 /**
  * @swagger
@@ -136,6 +130,55 @@ router.get("/products/top-rated", async (req, res) => {
   }
 });
 
+// GET /products/search?q=someName&minPrice=10&maxPrice=100&category=categoryId
+router.get("/products/search", async (req, res) => {
+  try {
+    const { q, minPrice, maxPrice, category } = req.query;
+
+    // بناء فلتر ديناميكي للبحث
+    let filter = {};
+
+    // فلترة السعر (إذا موجود)
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+
+    // لو المستخدم دخل category (id) مباشرة للفلترة حسب الفئة
+    if (category) {
+      filter.category_id = category;
+    }
+
+    // إذا يوجد نص بحث q
+    if (q) {
+      // أولاً: نبحث عن فئة تطابق اسمها q
+      const categoryFound = await Category.findOne({
+        name: { $regex: q, $options: "i" }, // بحث غير حساس لحالة الأحرف
+      });
+
+      if (categoryFound) {
+        // نضيف شرط البحث في إما اسم المنتج أو الفئة (ID)
+        filter.$or = [
+          { name: { $regex: q, $options: "i" } },
+          { category_id: categoryFound._id },
+        ];
+      } else {
+        // إذا لم توجد فئة، نبحث فقط في اسم المنتج
+        filter.name = { $regex: q, $options: "i" };
+      }
+    }
+
+    // جلب المنتجات بناء على الفلتر مع عمل populate للفئة (اختياري)
+    const products = await product.find(filter).populate("category_id", "name");
+
+    res.json(products);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 /**
  * @swagger
  * /products/{id}:
@@ -161,7 +204,7 @@ router.get("/products/top-rated", async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.get("/products/:id", verifyToken, async (req, res) => {
+router.get("/products/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -182,7 +225,6 @@ router.get("/products/:id", verifyToken, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 /**
  * @swagger
  * /products/category/{categoryId}:
@@ -208,7 +250,7 @@ router.get("/products/:id", verifyToken, async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.get("/products/category/:categoryId", verifyToken, async (req, res) => {
+router.get("/products/category/:categoryId", async (req, res) => {
   const { categoryId } = req.params;
   const { minPrice, maxPrice, page = 1, limit = 10 } = req.query;
 
