@@ -13,28 +13,33 @@ router.post(
   "/upload",
   verifyToken,
   isAdmin,
-  upload.single("file"),
+  upload.array("file", 10),
   async (req, res) => {
     try {
-      const filePath = req.file?.path;
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ message: "لم يتم رفع أي ملفات" });
+      }
 
-      if (!filePath)
-        return res.status(400).json({ message: "لم يتم رفع الملف" });
+      const uploadedFiles = [];
 
-      const result = await cloudinary.uploader.upload(filePath, {
-        folder: "syria-store",
-      });
+      for (const file of req.files) {
+        const result = await cloudinary.uploader.upload(file.path, {
+          folder: "syria-store",
+        });
 
-      fs.unlinkSync(filePath);
+        uploadedFiles.push({
+          imageUrl: result.secure_url,
+          publicId: result.public_id,
+          originalName: file.originalname,
+        });
 
-      return res.json({
-        imageUrl: result.secure_url,
-        publicId: result.public_id,
-        originalName: req.file.originalname,
-      });
+        fs.unlinkSync(file.path);
+      }
+
+      return res.json(uploadedFiles);
     } catch (err) {
       console.error(err);
-      return res.status(500).json({ err });
+      return res.status(500).json({ message: "فشل في رفع الملفات", err });
     }
   }
 );
